@@ -200,7 +200,8 @@ jobs:
       - name: List Linux artifacts
         shell: bash
         run: |
-          find release -type f \\( -name "*.AppImage" -o -name "*.deb" \\) -print
+          find release -type f -name "*.AppImage" -print
+          find release -type f -name "*.deb" -print
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
