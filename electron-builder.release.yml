@@ -1,11 +1,15 @@
-appId: com.charroco.batidadosado
+appId: pt.charroco.batidadosado
 productName: Batida do Sado
+
 directories:
-  output: dist
+  output: release
+
 files:
-  - dist/**
-  - dist-electron/**
+  - dist/**/*
+  - dist-electron/**/*
+  - public/**/*
   - package.json
+
 asar: true
 
 mac:
@@ -15,8 +19,8 @@ mac:
       arch:
         - universal
         - arm64
-  artifactName: "${productName}-${version}-${arch}.${ext}"
   icon: public/icon.icns
+  artifactName: "${productName}-${version}-${arch}.${ext}"
 
 win:
   target:
@@ -28,8 +32,8 @@ win:
       arch:
         - x64
         - arm64
-  artifactName: "${productName}-${version}-${arch}.${ext}"
   icon: public/icon.ico
+  artifactName: "${productName}-${version}-${arch}.${ext}"
 
 nsis:
   oneClick: false
@@ -51,8 +55,8 @@ linux:
       arch:
         - x64
         - arm64
-  artifactName: "${productName}-${version}-${arch}.${ext}"
   icon: public
+  artifactName: "${productName}-${version}-${arch}.${ext}"
 
 deb:
   packageName: deemix-app
