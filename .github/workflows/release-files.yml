@@ -23,6 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - id: pkg
         name: Read package.json version
         shell: bash
@@ -60,6 +64,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Build app
+        run: npm run build:app
+
+      - name: Check Electron output
+        shell: bash
+        run: |
+          ls -lah
+          ls -lah dist || true
+          ls -lah dist-electron || true
+          test -f dist-electron/main.js
 
       - name: Build release artifacts
         shell: bash
@@ -109,6 +124,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Build app
+        run: npm run build:app
+
+      - name: Check Electron output
+        shell: bash
+        run: |
+          ls -lah
+          ls -lah dist || true
+          ls -lah dist-electron || true
+          test -f dist-electron/main.js
 
       - name: Build installer
         shell: bash
@@ -166,6 +192,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Build app
+        run: npm run build:app
+
+      - name: Check Electron output
+        shell: bash
+        run: |
+          ls -lah
+          ls -lah dist || true
+          ls -lah dist-electron || true
+          test -f dist-electron/main.js
 
       - name: Build Linux artifacts
         shell: bash
