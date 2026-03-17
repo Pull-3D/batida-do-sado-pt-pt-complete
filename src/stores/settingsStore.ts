@@ -126,8 +126,8 @@ export interface Settings {
   spotifyFallbackSearch: boolean
 }
 
-const DEFAULT_ARL = 'c70cd512649d02d704f4c19e4182b701df7ff3534923c174c0e271fa2bd5db0cb704621a14e0b9fee961509a20500c559f2555f00163be8b3432d4cbb3e86c758ddeff079f21ca7e9cbef22662996994da12abca98a69a267705b9f54b552113'
-const DEFAULT_SPOTIFY_CLIENT_ID = 'fd383c5d13714f409bf4147a95c08a85'
+const DEFAULT_ARL = ''
+const DEFAULT_SPOTIFY_CLIENT_ID = ''
 
 export const defaultSettings: Settings = {
   downloadPath: '',

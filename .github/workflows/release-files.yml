@@ -1,0 +1,225 @@
+name: Release Files
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "20"
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+jobs:
+  version:
+    name: Read version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pkg.outputs.version }}
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - id: pkg
+        name: Read package.json version
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - id: tag
+        name: Resolve release tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v${{ steps.pkg.outputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-macos:
+    name: macOS (${{ matrix.arch }})
+    needs: version
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: universal
+            builder_args: "--mac dmg --universal --publish never"
+          - arch: arm64
+            builder_args: "--mac dmg --arm64 --publish never"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build release artifacts
+        shell: bash
+        run: npx electron-builder ${{ matrix.builder_args }} --config electron-builder.release.yml
+
+      - name: Rename macOS artifacts
+        shell: bash
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          APP_NAME="Batida do Sado"
+
+          if [[ "${{ matrix.arch }}" == "universal" ]]; then
+            src="$(find dist -type f -name "*.dmg" | head -n 1)"
+            cp "$src" "dist/${APP_NAME}-${VERSION}-universal.dmg"
+          else
+            src="$(find dist -type f -name "*.dmg" | head -n 1)"
+            cp "$src" "dist/${APP_NAME}-${VERSION}-arm64.dmg"
+          fi
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: |
+            dist/Batida do Sado-${{ needs.version.outputs.version }}-${{ matrix.arch == 'universal' && 'universal' || 'arm64' }}.dmg
+          if-no-files-found: error
+
+  build-windows:
+    name: Windows (${{ matrix.arch }})
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: x64
+          - runner: windows-11-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installer
+        shell: bash
+        run: npx electron-builder --win nsis --${{ matrix.arch }} --publish never --config electron-builder.release.yml
+
+      - name: Build portable
+        shell: bash
+        run: npx electron-builder --win portable --${{ matrix.arch }} --publish never --config electron-builder.release.yml
+
+      - name: Rename Windows artifacts
+        shell: bash
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          INSTALLER_SRC="$(find dist -type f -name "*.exe" ! -iname "*Portable*" | sort | head -n 1)"
+          PORTABLE_SRC="$(find dist -type f -iname "*Portable*.exe" | sort | head -n 1)"
+
+          cp "$INSTALLER_SRC" "dist/Batida do Sado-Setup-${VERSION}-${{ matrix.arch }}.exe"
+          cp "$PORTABLE_SRC" "dist/Batida do Sado-Portable-${VERSION}-${{ matrix.arch }}.exe"
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: |
+            dist/Batida do Sado-Setup-${{ needs.version.outputs.version }}-${{ matrix.arch }}.exe
+            dist/Batida do Sado-Portable-${{ needs.version.outputs.version }}-${{ matrix.arch }}.exe
+          if-no-files-found: error
+
+  build-linux:
+    name: Linux (${{ matrix.arch }})
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x64
+            deb_arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            deb_arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg rpm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Linux artifacts
+        shell: bash
+        run: npx electron-builder --linux AppImage deb --${{ matrix.arch }} --publish never --config electron-builder.release.yml
+
+      - name: Rename Linux artifacts
+        shell: bash
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          APPIMAGE_SRC="$(find dist -type f -name "*.AppImage" | head -n 1)"
+          DEB_SRC="$(find dist -type f -name "*.deb" | head -n 1)"
+
+          if [[ "${{ matrix.arch }}" == "x64" ]]; then
+            cp "$APPIMAGE_SRC" "dist/Batida do Sado-${VERSION}.AppImage"
+          else
+            cp "$APPIMAGE_SRC" "dist/Batida do Sado-${VERSION}-arm64.AppImage"
+          fi
+
+          cp "$DEB_SRC" "dist/deemix-app_${VERSION}_${{ matrix.deb_arch }}.deb"
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: |
+            dist/Batida do Sado-${{ needs.version.outputs.version }}${{ matrix.arch == 'arm64' && '-arm64' || '' }}.AppImage
+            dist/deemix-app_${{ needs.version.outputs.version }}_${{ matrix.deb_arch }}.deb
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs:
+      - version
+      - build-macos
+      - build-windows
+      - build-linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-files
+
+      - name: Flatten release files
+        shell: bash
+        run: |
+          mkdir -p final
+          find release-files -type f -exec cp {} final/ \;
+          ls -lah final
+
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: Batida do Sado ${{ needs.version.outputs.version }}
+          generate_release_notes: true
+          files: final/*
