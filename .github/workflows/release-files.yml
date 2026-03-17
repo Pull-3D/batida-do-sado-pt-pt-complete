@@ -203,6 +203,18 @@ jobs:
           find release -type f -name "*.AppImage" -print
           find release -type f -name "*.deb" -print
 
+      - name: Normalize Linux artifact names
+        shell: bash
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+
+          if [[ "${{ matrix.arch }}" == "x64" ]]; then
+            cp "release/Batida do Sado-${VERSION}-x86_64.AppImage" "release/Batida do Sado-${VERSION}.AppImage"
+            cp "release/Batida do Sado-${VERSION}-amd64.deb" "release/deemix-app_${VERSION}_amd64.deb"
+          else
+            cp "release/Batida do Sado-${VERSION}-arm64.deb" "release/deemix-app_${VERSION}_arm64.deb"
+          fi
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
