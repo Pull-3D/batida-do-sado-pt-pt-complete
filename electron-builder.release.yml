@@ -33,7 +33,6 @@ win:
         - x64
         - arm64
   icon: public/icon.ico
-  artifactName: "${productName}-${version}-${arch}.${ext}"
 
 nsis:
   oneClick: false

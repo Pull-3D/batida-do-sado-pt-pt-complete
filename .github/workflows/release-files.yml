@@ -81,26 +81,17 @@ jobs:
         shell: bash
         run: npx electron-builder ${{ matrix.builder_args }} --config electron-builder.release.yml
 
-      - name: Rename macOS artifacts
+      - name: List macOS artifacts
         shell: bash
         run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          APP_NAME="Batida do Sado"
-
-          if [[ "${{ matrix.arch }}" == "universal" ]]; then
-            src="$(find release -type f -name "*.dmg" | head -n 1)"
-            cp "$src" "release/${APP_NAME}-${VERSION}-universal.dmg"
-          else
-            src="$(find release -type f -name "*.dmg" | head -n 1)"
-            cp "$src" "release/${APP_NAME}-${VERSION}-arm64.dmg"
-          fi
+          find release -type f -name "*.dmg" -print
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
           path: |
-            release/Batida do Sado-${{ needs.version.outputs.version }}-${{ matrix.arch == 'universal' && 'universal' || 'arm64' }}.dmg
+            release/Batida do Sado-${{ needs.version.outputs.version }}-${{ matrix.arch }}.dmg
           if-no-files-found: error
 
   build-windows:
@@ -146,15 +137,10 @@ jobs:
         shell: bash
         run: npx electron-builder --win portable --${{ matrix.arch }} --publish never --config electron-builder.release.yml
 
-      - name: Rename Windows artifacts
+      - name: List Windows artifacts
         shell: bash
         run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          INSTALLER_SRC="$(find release -type f -name "*.exe" ! -iname "*Portable*" | sort | head -n 1)"
-          PORTABLE_SRC="$(find release -type f -iname "*Portable*.exe" | sort | head -n 1)"
-
-          cp "$INSTALLER_SRC" "release/Batida do Sado-Setup-${VERSION}-${{ matrix.arch }}.exe"
-          cp "$PORTABLE_SRC" "release/Batida do Sado-Portable-${VERSION}-${{ matrix.arch }}.exe"
+          find release -type f -name "*.exe" -print
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -211,20 +197,10 @@ jobs:
         shell: bash
         run: npx electron-builder --linux AppImage deb --${{ matrix.arch }} --publish never --config electron-builder.release.yml
 
-      - name: Rename Linux artifacts
+      - name: List Linux artifacts
         shell: bash
         run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          APPIMAGE_SRC="$(find release -type f -name "*.AppImage" | head -n 1)"
-          DEB_SRC="$(find release -type f -name "*.deb" | head -n 1)"
-
-          if [[ "${{ matrix.arch }}" == "x64" ]]; then
-            cp "$APPIMAGE_SRC" "release/Batida do Sado-${VERSION}.AppImage"
-          else
-            cp "$APPIMAGE_SRC" "release/Batida do Sado-${VERSION}-arm64.AppImage"
-          fi
-
-          cp "$DEB_SRC" "release/deemix-app_${VERSION}_${{ matrix.deb_arch }}.deb"
+          find release -type f \\( -name "*.AppImage" -o -name "*.deb" \\) -print
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
