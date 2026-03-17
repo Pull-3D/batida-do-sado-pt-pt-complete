@@ -45,6 +45,7 @@ portable:
 
 linux:
   category: AudioVideo
+  maintainer: "Charroco <pescanosado@gmail.com>"
   target:
     - target: AppImage
       arch:
@@ -59,3 +60,4 @@ linux:
 
 deb:
   packageName: deemix-app
+  maintainer: "Charroco <pescanosado@gmail.com>"
